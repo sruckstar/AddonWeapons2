@@ -50,6 +50,73 @@ namespace AddonWeapons2.Weapons
         private static int _saveInProgress = 0;
         private static Dictionary<uint, uint> _currentWeapons = new Dictionary<uint, uint>();
 
+        public static void UpdatePlayerWeaponsInventory()
+        {
+            var player = Game.Player.Character;
+            uint playerModelHash = (uint)player.Model.Hash;
+
+            if (!PurchasedComponents.ContainsKey(playerModelHash))
+            {
+                return;
+            }
+
+            // Get the player's current weapon
+            var currentWeapons = player.Weapons.GetAllWeaponHashes();
+            var weaponsToRemove = new List<uint>();
+
+            // Checking stored weapons
+            foreach (var weaponEntry in PurchasedComponents[playerModelHash])
+            {
+                uint weaponHash = weaponEntry.Key;
+
+                // If the weapon is not in the player's possession, but it is in the saved data
+                if (!currentWeapons.Contains((WeaponHash)weaponHash))
+                {
+                    weaponsToRemove.Add(weaponHash);
+                }
+            }
+
+            // Remove missing weapons from all dictionaries
+            foreach (var weaponHash in weaponsToRemove)
+            {
+                RemoveWeaponFromAllDictionaries(playerModelHash, weaponHash);
+            }
+
+            // Save changes
+            if (weaponsToRemove.Count > 0)
+            {
+                SaveWeaponInventory(playerModelHash);
+            }
+        }
+
+        public static void RemoveWeaponFromAllDictionaries(uint playerModelHash, uint weaponHash)
+        {
+            if (PurchasedComponents.ContainsKey(playerModelHash))
+            {
+                PurchasedComponents[playerModelHash].Remove(weaponHash);
+            }
+
+            if (PurchasedTints.ContainsKey(playerModelHash))
+            {
+                PurchasedTints[playerModelHash].Remove(weaponHash);
+            }
+
+            if (InstalledComponents.ContainsKey(playerModelHash))
+            {
+                InstalledComponents[playerModelHash].Remove(weaponHash);
+            }
+
+            if (InstalledAmmo.ContainsKey(playerModelHash))
+            {
+                InstalledAmmo[playerModelHash].Remove(weaponHash);
+            }
+
+            if (InstalledTints.ContainsKey(playerModelHash))
+            {
+                InstalledTints[playerModelHash].Remove(weaponHash);
+            }
+        }
+
         public static void SaveWeaponInventory(uint playerModelHash)
         {
             var player = Game.Player.Character;
@@ -99,6 +166,10 @@ namespace AddonWeapons2.Weapons
                 LoadInventory(currentModelHash);
                 SetCurrentLoadInventoryFlags();
                 _lastPlayerModelHash = currentModelHash;
+            }
+            else
+            {
+                UpdatePlayerWeaponsInventory();
             }
         }
 

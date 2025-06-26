@@ -106,7 +106,7 @@ namespace AddonWeapons2.UI
             uint playerModelHash = (uint)player.Model.Hash;
             ApplyWeaponShopTints(player, playerModelHash, data.WeaponHash, WeaponObject);
             ApplyWeaponShopComponents(player, playerModelHash, data.WeaponHash, WeaponObject);
-            SetWeaponShopComponentPreview(WeaponObject, data.ComponentHash);
+            //SetWeaponShopComponentPreview(WeaponObject, data.ComponentHash);
         }
 
         private void OnComponentActivated(ComponentItemData data)

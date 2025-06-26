@@ -33,12 +33,13 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="LemonUI.SHVDN3">
+    <Reference Include="LemonUI.SHVDN3, Version=2.1.2.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
       <HintPath>D:\Rockstar Games\Grand Theft Auto V\scripts\LemonUI.SHVDN3.dll</HintPath>
     </Reference>
-    <Reference Include="ScriptHookVDotNet3, Version=3.7.0.14, Culture=neutral, processorArchitecture=AMD64">
+    <Reference Include="ScriptHookVDotNet3, Version=3.7.0.24, Culture=neutral, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\Rockstar Games\Grand Theft Auto V (Modding)\ScriptHookVDotNet3.dll</HintPath>
+      <HintPath>D:\Rockstar Games\Grand Theft Auto V\ScriptHookVDotNet3.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
