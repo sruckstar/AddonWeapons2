@@ -1,0 +1,9 @@
+﻿################################################################################
+# Данный GITIGNORE-файл был автоматически создан Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/AddonWeapons2
+/AddonWeapons2/.vs
+/AddonWeapons2/bin/Release
+/AddonWeapons2/obj
+/AddonWeapons2/Properties
