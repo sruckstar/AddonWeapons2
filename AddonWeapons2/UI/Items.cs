@@ -12,6 +12,7 @@ using static AddonWeapons2.UI.WeaponMenu;
 using static AddonWeapons2.UI.ComponentMenuHandler;
 using static AddonWeapons2.Weapons.WeaponDataUtils;
 using static AddonWeapons2.Weapons.WeaponManager;
+using static AddonWeapons2.Common.PlayerUtils;
 
 using System.Linq;
 using GTA.Math;
@@ -26,6 +27,13 @@ namespace AddonWeapons2.UI
         private static readonly IBadgeProvider _badgeProvider = new BadgeProvider();
 
         public static Prop WeaponObject { get; set; }
+
+        private const float PreviewHoverHeight = 0.9f;
+        private const float PreviewForwardOffset = 0.5f;
+        private const float PreviewSpinSpeed = 45f;
+
+        private static Vector3 _previewBasePos;
+        private static float _previewYaw;
 
         public static void Initialize()
         {
@@ -89,25 +97,87 @@ namespace AddonWeapons2.UI
         private static void OnWeaponSelected(DlcWeaponDataWithComponents weapon, string weaponName,
                                            uint weaponHash, int cost, BadgeSet badgeSet, NativeItem item)
         {
-            var nearestBox = AmmoShopManager.GetNearestAmmoBox();
-            if (nearestBox.HasValue)
-            {
-                Vector3 position = nearestBox.Value.Position;
-                float heading = nearestBox.Value.Heading;
-                Ped player = Game.Player.Character;
-                uint playerHash = (uint)Game.Player.Character.Model.Hash;
+            PreviewWeapon(weaponHash);
+        }
 
-                //DeleteWeaponObject();
-                //WeaponObject = CreateWeaponObject(weaponHash, position);
-                //ApplyWeaponShopComponents(player, playerHash, weaponHash, WeaponObject);
-                //ApplyWeaponShopTints(player, playerHash, weaponHash, WeaponObject);
-            }
+        public static void PreviewWeapon(uint weaponHash)
+        {
+            var nearestBox = AmmoShopManager.GetNearestAmmoBox();
+            if (!nearestBox.HasValue) return;
+
+            Ped player = Game.Player.Character;
+            uint playerHash = (uint)player.Model.Hash;
+
+            CurrentWeaponHash = weaponHash;
+
+            DeleteWeaponObject();
+            WeaponObject = CreateWeaponObject(weaponHash, nearestBox.Value.Position);
+            if (WeaponObject == null || !WeaponObject.Exists()) return;
+
+            SetupPreviewObject(nearestBox.Value.Position);
+            ApplyWeaponShopComponents(player, playerHash, weaponHash, WeaponObject);
+            ApplyWeaponShopTints(player, playerHash, weaponHash, WeaponObject);
+
+            WeaponPreviewCamera.EnsureActive(_previewBasePos);
         }
 
         public static Prop CreateWeaponObject(uint WeaponModel, Vector3 position)
         {
             return Function.Call<Prop>(Hash.CREATE_WEAPON_OBJECT, WeaponModel, 1,
-                position.X, position.Y, position.Z + 1.0f, true, 1f, 0);
+                position.X, position.Y, position.Z + PreviewHoverHeight, true, 1f, 0);
+        }
+
+        private static void SetupPreviewObject(Vector3 boxPosition)
+        {
+            _previewBasePos = ComputePreviewBasePos(boxPosition);
+            _previewYaw = 0f;
+            FreezePreviewObject();
+        }
+
+        private static Vector3 ComputePreviewBasePos(Vector3 boxPosition)
+        {
+            Vector3 toPlayer = Game.Player.Character.Position - boxPosition;
+            toPlayer.Z = 0f;
+            if (toPlayer.Length() < 0.01f)
+                toPlayer = new Vector3(0f, 1f, 0f);
+            toPlayer.Normalize();
+
+            return new Vector3(boxPosition.X, boxPosition.Y, boxPosition.Z + PreviewHoverHeight)
+                   + toPlayer * PreviewForwardOffset;
+        }
+
+        private static void FreezePreviewObject()
+        {
+            Function.Call(Hash.SET_ENTITY_COLLISION, WeaponObject, false, false);
+            Function.Call(Hash.FREEZE_ENTITY_POSITION, WeaponObject, true);
+            Function.Call(Hash.SET_ENTITY_COORDS_NO_OFFSET, WeaponObject,
+                _previewBasePos.X, _previewBasePos.Y, _previewBasePos.Z, false, false, false);
+            Function.Call(Hash.SET_ENTITY_ROTATION, WeaponObject, 0f, 0f, _previewYaw, 2, true);
+        }
+
+        public static void RebuildPreviewObject(uint weaponHash)
+        {
+            if (_previewBasePos == Vector3.Zero) return;
+
+            DeleteWeaponObject();
+            WeaponObject = Function.Call<Prop>(Hash.CREATE_WEAPON_OBJECT, weaponHash, 1,
+                _previewBasePos.X, _previewBasePos.Y, _previewBasePos.Z, true, 1f, 0);
+            if (WeaponObject == null || !WeaponObject.Exists()) return;
+
+            FreezePreviewObject();
+            PreviewComponent = 0;
+        }
+
+        public static void UpdateWeaponPreview()
+        {
+            if (WeaponObject == null || !WeaponObject.Exists()) return;
+
+            _previewYaw += PreviewSpinSpeed * Game.LastFrameTime;
+            if (_previewYaw >= 360f) _previewYaw -= 360f;
+
+            Function.Call(Hash.SET_ENTITY_COORDS_NO_OFFSET, WeaponObject,
+                _previewBasePos.X, _previewBasePos.Y, _previewBasePos.Z, false, false, false);
+            Function.Call(Hash.SET_ENTITY_ROTATION, WeaponObject, 0f, 0f, _previewYaw, 2, true);
         }
 
         public static void DeleteWeaponObject()
@@ -139,11 +209,11 @@ namespace AddonWeapons2.UI
 
         private static void SetupWeaponComponents(DlcWeaponDataWithComponents weapon, uint weaponHash)
         {
+            AddAmmoItemIfNeeded(weapon, weaponHash);
+            _tintService.AddTintOptions(weapon, weapon.WeaponData.GetNameLabel(), weaponHash, ComponentMenu);
+
             if (weapon.Components.Count == 0)
             {
-                AddAmmoItemIfNeeded(weapon, weaponHash);
-                _tintService.AddTintOptions(weapon, weapon.WeaponData.GetNameLabel(), weaponHash, ComponentMenu);
-
                 if ((WeaponHash)weaponHash == WeaponHash.StunGunMultiplayer)
                 {
                     AddStunGunBailComponent(weapon, weaponHash);
@@ -151,9 +221,6 @@ namespace AddonWeapons2.UI
             }
             else
             {
-                AddAmmoItemIfNeeded(weapon, weaponHash);
-                _tintService.AddTintOptions(weapon, weapon.WeaponData.GetNameLabel(), weaponHash, ComponentMenu);
-
                 foreach (var component in weapon.Components)
                 {
                     var componentItem = CreateComponentItem(
@@ -264,17 +331,6 @@ namespace AddonWeapons2.UI
             RefreshComponentMenu(ComponentMenu, components, costs);
         }
 
-        private static bool CanAfford(int amount)
-        {
-            return Game.Player.Money >= amount || IsFreemodeCharacter();
-        }
-
-        private static bool IsFreemodeCharacter()
-        {
-            var model = Game.Player.Character.Model;
-            return model == new Model("mp_m_freemode_01") || model == new Model("mp_f_freemode_01");
-        }
-
         private static string GetWeaponName(DlcWeaponDataWithComponents weapon)
         {
             string name = Game.GetLocalizedString(weapon.WeaponData.GetNameLabel());
@@ -289,58 +345,43 @@ namespace AddonWeapons2.UI
 
         private static int GetWeaponCost(DlcWeaponDataWithComponents weapon)
         {
-            // Реализация получения стоимости оружия
-            // (может включать чтение из конфигурации)
             return weapon.WeaponData.WeaponCost;
         }
 
+        private static readonly Dictionary<uint, WeaponCategory> _groupToCategory =
+            new Dictionary<uint, WeaponCategory>
+            {
+                { (uint)AddonWeaponGroup.Heavy,    WeaponCategory.Heavy },
+                { (uint)AddonWeaponGroup.Melee,    WeaponCategory.Melee },
+                { (uint)AddonWeaponGroup.MG,       WeaponCategory.MG },
+                { (uint)AddonWeaponGroup.Pistol,   WeaponCategory.Pistol },
+                { (uint)AddonWeaponGroup.Rifle,    WeaponCategory.Rifle },
+                { (uint)AddonWeaponGroup.Shotgun,  WeaponCategory.Shotgun },
+                { (uint)AddonWeaponGroup.SMG,      WeaponCategory.SMG },
+                { (uint)AddonWeaponGroup.Sniper,   WeaponCategory.Sniper },
+                { (uint)AddonWeaponGroup.StunGun,  WeaponCategory.StunGun },
+                { (uint)AddonWeaponGroup.Thrown,   WeaponCategory.Thrown },
+                { (uint)AddonWeaponGroup.RubberGun, WeaponCategory.RubberGun },
+            };
+
+        private static readonly HashSet<uint> _noAmmoGroups = new HashSet<uint>
+        {
+            (uint)AddonWeaponGroup.Melee,
+            (uint)AddonWeaponGroup.StunGun,
+        };
+
         private static void AddToAppropriateMenu(NativeItem weaponItem, uint weaponHash)
         {
-            // 1. Проверка пользовательских категорий из commandline.txt
             if (TryAddToCustomMenu(weaponItem, weaponHash))
                 return;
 
-            // 2. Добавление в стандартные категории по типу оружия
             var weaponGroup = Function.Call<uint>(Hash.GET_WEAPONTYPE_GROUP, weaponHash);
 
-            switch (weaponGroup)
-            {
-                case (uint)AddonWeaponGroup.Heavy:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.Heavy)?.Add(weaponItem);
-                    break;
-                case (uint)AddonWeaponGroup.Melee:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.Melee)?.Add(weaponItem);
-                    WeaponInfo.NoAmmoWeapons.Add(weaponHash);
-                    break;
-                case (uint)AddonWeaponGroup.MG:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.MG)?.Add(weaponItem);
-                    break;
-                case (uint)AddonWeaponGroup.Pistol:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.Pistol)?.Add(weaponItem);
-                    break;
-                case (uint)AddonWeaponGroup.Rifle:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.Rifle)?.Add(weaponItem);
-                    break;
-                case (uint)AddonWeaponGroup.Shotgun:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.Shotgun)?.Add(weaponItem);
-                    break;
-                case (uint)AddonWeaponGroup.SMG:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.SMG)?.Add(weaponItem);
-                    break;
-                case (uint)AddonWeaponGroup.Sniper:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.Sniper)?.Add(weaponItem);
-                    break;
-                case (uint)AddonWeaponGroup.StunGun:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.StunGun)?.Add(weaponItem);
-                    WeaponInfo.NoAmmoWeapons.Add(weaponHash);
-                    break;
-                case (uint)AddonWeaponGroup.Thrown:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.Thrown)?.Add(weaponItem);
-                    break;
-                case (uint)AddonWeaponGroup.RubberGun:
-                    WeaponMenu.GetMenuForCategory(WeaponCategory.RubberGun)?.Add(weaponItem);
-                    break;
-            }
+            if (_groupToCategory.TryGetValue(weaponGroup, out var category))
+                WeaponMenu.GetMenuForCategory(category)?.Add(weaponItem);
+
+            if (_noAmmoGroups.Contains(weaponGroup))
+                WeaponInfo.NoAmmoWeapons.Add(weaponHash);
         }
 
         private static bool TryAddToCustomMenu(NativeItem weaponItem, uint weaponHash)

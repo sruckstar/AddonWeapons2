@@ -4,9 +4,6 @@ using static AddonWeapons2.Weapons.WeaponInfo;
 
 namespace AddonWeapons2.Weapons
 {
-    /// <summary>
-    /// Интерфейс для управления оружием и его компонентами
-    /// </summary>
     public interface IWeaponManager
     {
         List<uint> GetComponentsList(DlcWeaponDataWithComponents weapon);

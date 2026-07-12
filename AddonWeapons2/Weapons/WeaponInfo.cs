@@ -196,7 +196,7 @@ namespace AddonWeapons2.Weapons
         public static void LoadDlcWeaponModels()
         {
             int numDlcWeapons = Function.Call<int>(Hash.GET_NUM_DLC_WEAPONS);
-            var processedWeaponHashes = new HashSet<uint>(); // Для отслеживания уже обработанных оружий
+            var processedWeaponHashes = new HashSet<uint>();
 
             for (int i = 0; i < numDlcWeapons; i++)
             {
@@ -207,21 +207,19 @@ namespace AddonWeapons2.Weapons
                     {
                         var weaponData = Marshal.PtrToStructure<DlcWeaponData>(outData);
 
-                        // Пропускаем дубликаты
                         if (processedWeaponHashes.Contains(weaponData.WeaponHash))
                         {
                             continue;
                         }
 
-                        int WeaponHash = Function.Call<int>(Hash.GET_WEAPONTYPE_MODEL, weaponData.WeaponHash);
-                        Model weap = new Model(WeaponHash);
-                        while (!weap.IsLoaded)
+                        int weaponModelHash = Function.Call<int>(Hash.GET_WEAPONTYPE_MODEL, weaponData.WeaponHash);
+                        Model weap = new Model(weaponModelHash);
+                        if (weap.IsValid && weap.IsInCdImage && !weap.IsLoaded)
                         {
-                            Script.Wait(0);
-                            weap.Request(1000);
+                            weap.Request();
                         }
 
-                        processedWeaponHashes.Add(weaponData.WeaponHash); // Добавляем хеш в обработанные
+                        processedWeaponHashes.Add(weaponData.WeaponHash);
 
                         var components = GetDlcWeaponComponents(i);
                         var weaponDataWithComponents = new DlcWeaponDataWithComponents(weaponData, components);

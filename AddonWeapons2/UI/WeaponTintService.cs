@@ -8,7 +8,8 @@ using AddonWeapons2.Weapons;
 using static AddonWeapons2.Weapons.WeaponInfo;
 using static AddonWeapons2.Weapons.WeaponDataUtils;
 using static AddonWeapons2.Weapons.WeaponManager;
-using static AddonWeapons2.UI.Items; 
+using static AddonWeapons2.Common.PlayerUtils;
+using static AddonWeapons2.UI.Items;
 
 
 namespace AddonWeapons2.UI
@@ -107,17 +108,6 @@ namespace AddonWeapons2.UI
 
             WeaponSave.SaveWeaponInventory(player);
             RefreshComponentMenuAfterAction(weapon);
-        }
-
-        private bool CanAfford(int amount)
-        {
-            return Game.Player.Money >= amount || IsFreemodeCharacter();
-        }
-
-        private bool IsFreemodeCharacter()
-        {
-            var model = Game.Player.Character.Model;
-            return model == new Model("mp_m_freemode_01") || model == new Model("mp_f_freemode_01");
         }
 
         private void RefreshComponentMenuAfterAction(DlcWeaponDataWithComponents weapon)

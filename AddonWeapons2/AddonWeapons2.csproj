@@ -37,9 +37,9 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>D:\Rockstar Games\Grand Theft Auto V\scripts\LemonUI.SHVDN3.dll</HintPath>
     </Reference>
-    <Reference Include="ScriptHookVDotNet3, Version=3.7.0.24, Culture=neutral, processorArchitecture=AMD64">
+    <Reference Include="ScriptHookVDotNet3, Version=3.6.0.0, Culture=neutral, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>D:\Rockstar Games\Grand Theft Auto V\ScriptHookVDotNet3.dll</HintPath>
+      <HintPath>..\..\SHDN 3.6.0\ScriptHookVDotNet3.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -54,6 +54,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AddonWeapons.cs" />
+    <Compile Include="Common\FileLogger.cs" />
+    <Compile Include="Common\PlayerUtils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="UI\BadgeProvider.cs" />
     <Compile Include="UI\Badges.cs" />
@@ -63,6 +65,7 @@
     <Compile Include="Weapons\IWeaponManager.cs" />
     <Compile Include="UI\IWeaponTintService.cs" />
     <Compile Include="UI\WeaponMenu.cs" />
+    <Compile Include="UI\WeaponPreviewCamera.cs" />
     <Compile Include="UI\WeaponTintService.cs" />
     <Compile Include="Weapons\AmmoShopManager.cs" />
     <Compile Include="Weapons\WeaponDataUtils.cs" />

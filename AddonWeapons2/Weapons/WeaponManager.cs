@@ -88,26 +88,38 @@ namespace AddonWeapons2.Weapons
 
         public static void ApplyWeaponShopComponents(Ped ped, uint playerModelHash, uint weaponHash, Prop WeaponObject)
         {
+            if (WeaponObject == null || !WeaponObject.Exists())
+            {
+                PreviewComponent = 0;
+                return;
+            }
+
             //Disable Preview Components
             if (PreviewComponent != 0)
             {
                 Function.Call(Hash.REMOVE_WEAPON_COMPONENT_FROM_WEAPON_OBJECT, WeaponObject, PreviewComponent);
                 PreviewComponent = 0;
             }
-           
+
             //Install Purchased Components
-            if (!InstalledComponents[playerModelHash].ContainsKey(weaponHash)) return;
-            foreach (var componentHash in InstalledComponents[playerModelHash][weaponHash])
+            if (!InstalledComponents.TryGetValue(playerModelHash, out var weaponsComponents)) return;
+            if (!weaponsComponents.TryGetValue(weaponHash, out var componentHashes)) return;
+
+            foreach (var componentHash in componentHashes)
             {
+                LoadComponentModel(componentHash);
                 Function.Call(Hash.GIVE_WEAPON_COMPONENT_TO_WEAPON_OBJECT, WeaponObject, componentHash);
             }
         }
 
         public static void ApplyWeaponShopTints(Ped ped, uint playerModelHash, uint weaponHash, Prop WeaponObject)
         {
-            if (!PurchasedTints[playerModelHash].ContainsKey(weaponHash)) return;
+            if (WeaponObject == null || !WeaponObject.Exists()) return;
 
-            foreach (var tint in PurchasedTints[playerModelHash][weaponHash])
+            if (!PurchasedTints.TryGetValue(playerModelHash, out var weaponsTints)) return;
+            if (!weaponsTints.TryGetValue(weaponHash, out var tints)) return;
+
+            foreach (var tint in tints)
             {
                 if (ContainsWeaponData(InstalledTintsDict, playerModelHash, weaponHash, 0, tint))
                 {
@@ -118,16 +130,17 @@ namespace AddonWeapons2.Weapons
 
         public static void SetWeaponShopTintPreview(Prop WeaponObject, int tintIndex)
         {
+            if (WeaponObject == null || !WeaponObject.Exists()) return;
             Function.Call(Hash.SET_WEAPON_OBJECT_TINT_INDEX, WeaponObject, tintIndex);
         }
 
         public static void SetWeaponShopComponentPreview(Prop WeaponObject, uint componentHash)
         {
-            int component = LoadComponentModel(componentHash);
+            if (WeaponObject == null || !WeaponObject.Exists()) return;
 
+            LoadComponentModel(componentHash);
             Function.Call(Hash.GIVE_WEAPON_COMPONENT_TO_WEAPON_OBJECT, WeaponObject, componentHash);
             PreviewComponent = componentHash;
-            GTA.UI.Screen.ShowSubtitle($"Установлено превью {component}");
         }
 
         public void SerializeDictionary<T1, T2, T3>(string filePath, Dictionary<T1, Dictionary<T2, List<T3>>> dictionary)
@@ -156,7 +169,8 @@ namespace AddonWeapons2.Weapons
             {
                 Function.Call(Hash.REQUEST_MODEL, componentModel);
 
-                while (!Function.Call<bool>(Hash.HAS_MODEL_LOADED, componentModel))
+                int timeout = Game.GameTime + 1000;
+                while (!Function.Call<bool>(Hash.HAS_MODEL_LOADED, componentModel) && Game.GameTime < timeout)
                 {
                     WeaponMenu.Pool.Process();
                     Script.Wait(0);

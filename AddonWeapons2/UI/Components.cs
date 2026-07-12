@@ -8,23 +8,14 @@ using static AddonWeapons2.Weapons.WeaponInfo;
 using static AddonWeapons2.UI.Badges;
 using static AddonWeapons2.Weapons.WeaponDataUtils;
 using static AddonWeapons2.Weapons.WeaponManager;
+using static AddonWeapons2.Common.PlayerUtils;
 using static AddonWeapons2.UI.Items;
 
 namespace AddonWeapons2.UI
 {
-    /// <summary>
-    /// Интерфейс для сервиса работы с меню компонентов
-    /// </summary>
     public interface IComponentMenuService
     {
-        /// <summary>
-        /// Обновляет меню компонентов
-        /// </summary>
         void RefreshComponentMenu(NativeMenu menu, List<uint> componentHashes, List<int> componentCosts);
-
-        /// <summary>
-        /// Создает элемент меню для компонента
-        /// </summary>
         NativeItem CreateComponentItem(ComponentItemData data);
     }
 
@@ -104,9 +95,10 @@ namespace AddonWeapons2.UI
         {
             Ped player = Game.Player.Character;
             uint playerModelHash = (uint)player.Model.Hash;
-            ApplyWeaponShopTints(player, playerModelHash, data.WeaponHash, WeaponObject);
+            Items.RebuildPreviewObject(data.WeaponHash);
             ApplyWeaponShopComponents(player, playerModelHash, data.WeaponHash, WeaponObject);
-            //SetWeaponShopComponentPreview(WeaponObject, data.ComponentHash);
+            ApplyWeaponShopTints(player, playerModelHash, data.WeaponHash, WeaponObject);
+            SetWeaponShopComponentPreview(WeaponObject, data.ComponentHash);
         }
 
         private void OnComponentActivated(ComponentItemData data)
@@ -173,7 +165,7 @@ namespace AddonWeapons2.UI
                 AddToTintDictionary(PurchasedTints, player, CurrentWeaponHash, index);
             }
             item.AltTitle = "";
-            item.RightBadgeSet = _badgeProvider.GetGunBadge(); // Используем свойство вместо метода
+            item.RightBadgeSet = _badgeProvider.GetGunBadge();
         }
 
         private void UpdateAsAvailableTint(NativeItem item, bool isPurchased, int index)
@@ -181,7 +173,7 @@ namespace AddonWeapons2.UI
             if (isPurchased)
             {
                 item.AltTitle = "";
-                item.RightBadgeSet = _badgeProvider.GetTickBadge(); // Используем свойство вместо метода
+                item.RightBadgeSet = _badgeProvider.GetTickBadge();
             }
             else
             {
@@ -228,14 +220,6 @@ namespace AddonWeapons2.UI
         }
 
         private uint GetPlayerModelHash() => (uint)Game.Player.Character.Model.Hash;
-
-        private bool CanAfford(int cost) => Game.Player.Money >= cost || IsMultiplayerCharacter();
-
-        private bool IsMultiplayerCharacter()
-        {
-            int hash = Game.Player.Character.Model.Hash;
-            return hash == new Model("mp_m_freemode_01").Hash || hash == new Model("mp_f_freemode_01").Hash;
-        }
 
         private void PurchaseComponent(uint player, ComponentItemData data)
         {

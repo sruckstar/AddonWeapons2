@@ -7,3 +7,9 @@
 /AddonWeapons2/bin/Release
 /AddonWeapons2/obj
 /AddonWeapons2/Properties
+AddonWeapons2.Tests/AddonWeapons2.Tests.csproj
+/AddonWeapons2.Tests
+*.zip
+gunclub_shop.sc
+gunclub_shop_private.sch
+TESTING.md

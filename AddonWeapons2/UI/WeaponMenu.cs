@@ -109,24 +109,12 @@ namespace AddonWeapons2.UI
                 Items.DeleteWeaponObject();
             };
 
-            if (IsWeaponMenu || IsComponentMenu)
+            if (IsComponentMenu)
             {
                 WeaponMenu.Opening += (sender, args) =>
                 {
-                    var nearestBox = AmmoShopManager.GetNearestAmmoBox();
-                    if (nearestBox.HasValue)
-                    {
-                        Vector3 position = nearestBox.Value.Position;
-                        float heading = nearestBox.Value.Heading;
-                        uint weaponHash = WeaponInfo.CurrentWeaponHash;
-                        Ped player = Game.Player.Character;
-                        uint playerHash = (uint)Game.Player.Character.Model.Hash;
-
-                        //DeleteWeaponObject();
-                        //WeaponObject = CreateWeaponObject(WeaponInfo.CurrentWeaponHash, position);
-                        //ApplyWeaponShopComponents(player, playerHash, weaponHash, WeaponObject);
-                        //ApplyWeaponShopTints(player, playerHash, weaponHash, WeaponObject);
-                    }
+                    if (WeaponInfo.CurrentWeaponHash != 0)
+                        Items.PreviewWeapon(WeaponInfo.CurrentWeaponHash);
                 };
             }
 
